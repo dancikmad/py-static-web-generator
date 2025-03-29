@@ -1,9 +1,9 @@
 import unittest
-from utils import (
+from src.utils import (
     split_nodes_delimiter,
 )
 
-from textnode import TextNode, TextType
+from src.textnode import TextNode, TextType
 
 
 class TestInlineMarkdown(unittest.TestCase):
