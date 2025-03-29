@@ -107,37 +107,10 @@ def split_nodes_link(old_nodes):
 
 
 def text_to_textnodes(text):
-    # Current implementation returns a flat list of TextNodes
-    delimiters = ["**", "_", "`"]
-    text_types = [TextType.BOLD, TextType.ITALIC, TextType.CODE]
-
     nodes = [TextNode(text, TextType.TEXT)]
+    nodes = split_nodes_delimiter(nodes, "**", TextType.BOLD)
+    nodes = split_nodes_delimiter(nodes, "_", TextType.ITALIC)
+    nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
     nodes = split_nodes_image(nodes)
     nodes = split_nodes_link(nodes)
-
-    for i in range(len(delimiters)):
-        nodes = split_nodes_delimiter(nodes, delimiters[i], text_types[i])
-
-    # If test expects a list containing a list of TextNodes:
-    return [nodes]  # Wrap in another list
-
-
-def markdown_to_blocks(markdown: str) -> List[str]:
-    """
-    Splits a raw Markdownn into a list of block strings.
-
-    Parameters:
-    ----------
-    markdown: str
-        A block of raw Markdown text.
-    Returns:
-    --------
-    block_strings: List[str]
-        A list of "block" strings containing inline texts.
-    """
-    blocks = []
-    for block in markdown.split("\n\n"):
-        stripped_lines = [line.strip() for line in block.split("\n") if line.strip()]
-        if stripped_lines:
-            blocks.append("\n".join(stripped_lines))
-    return blocks
+    return nodes
