@@ -36,6 +36,14 @@ def markdown_to_blocks(markdown: str) -> List[str]:
     return blocks
 
 
+def extract_title(markdown):
+    for line in markdown.split("\n"):  # Check each line
+        if line.strip().startswith("# "):  # Find first H1 header
+            return line.strip()[2:].strip()  # Remove '# ' and extra spaces
+
+    raise ValueError("The markdown doesn't contain an H1 title")
+
+
 def block_to_block_type(block: str) -> BlockType:
     lines = block.split("\n")
 
