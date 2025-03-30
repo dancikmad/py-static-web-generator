@@ -89,3 +89,36 @@ def generate_page(
         file.write(final_html)
 
     logger.info(f"✅ Page generated successfully: {dest_path}")
+
+
+def generate_pages_recursive(
+    dir_path_content: str, template_path: str, dest_dir_path: str
+):
+    """
+    Recursively generate HTML pages from markdown files found in the content directory
+    and write them to the public directory, maintaining the same directory structure.
+    """
+
+    # Iterate through all items in the content directory
+    for root, dirs, files in os.walk(dir_path_content):
+        for file in files:
+            # Only process markdown files
+            if file.endswith(".md"):
+                # Construct the full path to the markdown file
+                markdown_file_path = os.path.join(root, file)
+
+                # Determine the relative path of the markdown file
+                relative_path = os.path.relpath(root, dir_path_content)
+
+                # Construct the destination path in the public directory
+                dest_dir = os.path.join(dest_dir_path, relative_path)
+
+                # Ensure the destination directory exists
+                os.makedirs(dest_dir, exist_ok=True)
+
+                # Generate the destination path from the HTML file
+                html_file_name = file.replace(".md", ".html")
+                dest_path = os.path.join(dest_dir, html_file_name)
+
+                # Generate the page using the generate_page function
+                generate_page(markdown_file_path, template_path, dest_path)
