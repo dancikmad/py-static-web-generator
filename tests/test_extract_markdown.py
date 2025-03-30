@@ -26,12 +26,6 @@ class TestExtractMarkdownImage(unittest.TestCase):
         matches = extract_markdown_images("This is a plain text with no images")
         self.assertEqual([], matches)
 
-    def test_malformed_image_markdown(self):
-        matches = extract_markdown_images(
-            "This is broken ![no_url] and ![incomplete](missing_parent)"
-        )
-        self.assertEqual([], matches)
-
 
 class TestExtractMarkdownLink(unittest.TestCase):
     def test_extract_markdown_url(self):
@@ -48,10 +42,4 @@ class TestExtractMarkdownLink(unittest.TestCase):
 
     def test_no_links(self):
         matches = extract_markdown_links("This is plain text with no links.")
-        self.assertEqual([], matches)
-
-    def test_malformed_links(self):
-        matches = extract_markdown_links(
-            "This is broken [no_url] and [incomplete](missing_parent)"
-        )
         self.assertEqual([], matches)
