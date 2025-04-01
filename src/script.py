@@ -1,8 +1,8 @@
 import os
 import shutil
 import logging
+import re
 
-from src.markdown_blocks import extract_title, markdown_to_html_node
 
 # configure logging
 logging.basicConfig(
@@ -56,69 +56,44 @@ def copy_files_recursive(source_dir: str, dest_dir: str):
 
 
 def generate_page(
-    from_path: str,
-    template_path: str,
-    dest_path: str,
+    content_path: str, template_path: str, output_path: str, basepath: str
 ):
-    logger.info(
-        f"🛠️ Generating page from {from_path} to {dest_path} using {template_path}"
-    )
+    # Ensure basepath ends with "/"
+    if not basepath.endswith("/"):
+        basepath += "/"
 
-    # Read Makrdown file
-    with open(from_path, "r", encoding="utf-8") as file:
-        markdown = file.read()
-    title = extract_title(markdown)
+    with open(template_path, "r", encoding="utf-8") as template_file:
+        template = template_file.read()
 
-    # Convert Markdown to HTML
-    html_string = markdown_to_html_node(markdown).to_html()
-
-    # Read Template file
-    with open(template_path, "r", encoding="utf-8") as file:
-        template = file.read()
+    with open(content_path, "r", encoding="utf-8") as content_file:
+        content = content_file.read()
 
     # Replace placeholders
-    final_html = template.replace("{{ Title }}", title).replace(
-        "{{ Content }}", html_string
+    page_content = template.replace(
+        "{{ Title }}", os.path.basename(content_path).replace(".md", "")
     )
+    page_content = page_content.replace("{{ Content }}", content)
 
-    # Ensure destination directory exists
-    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    # Replace href/src paths correctly
+    page_content = re.sub(r'href="/([^"]*)"', rf'href="{basepath}\1"', page_content)
+    page_content = re.sub(r'src="/([^"]*)"', rf'src="{basepath}\1"', page_content)
 
-    # Write to destination file
-    with open(dest_path, "w", encoding="utf-8") as file:
-        file.write(final_html)
-
-    logger.info(f"✅ Page generated successfully: {dest_path}")
+    # Write the final output
+    with open(output_path, "w", encoding="utf-8") as output_file:
+        output_file.write(page_content)
 
 
 def generate_pages_recursive(
-    dir_path_content: str, template_path: str, dest_dir_path: str
+    content_dir: str, template_path: str, output_dir: str, basepath: str
 ):
-    """
-    Recursively generate HTML pages from markdown files found in the content directory
-    and write them to the public directory, maintaining the same directory structure.
-    """
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Iterate through all items in the content directory
-    for root, dirs, files in os.walk(dir_path_content):
-        for file in files:
-            # Only process markdown files
-            if file.endswith(".md"):
-                # Construct the full path to the markdown file
-                markdown_file_path = os.path.join(root, file)
+    for filename in os.listdir(content_dir):
+        input_path = os.path.join(content_dir, filename)
+        output_path = os.path.join(output_dir, filename.replace(".md", ".html"))
 
-                # Determine the relative path of the markdown file
-                relative_path = os.path.relpath(root, dir_path_content)
-
-                # Construct the destination path in the public directory
-                dest_dir = os.path.join(dest_dir_path, relative_path)
-
-                # Ensure the destination directory exists
-                os.makedirs(dest_dir, exist_ok=True)
-
-                # Generate the destination path from the HTML file
-                html_file_name = file.replace(".md", ".html")
-                dest_path = os.path.join(dest_dir, html_file_name)
-
-                # Generate the page using the generate_page function
-                generate_page(markdown_file_path, template_path, dest_path)
+        if os.path.isdir(input_path):
+            generate_pages_recursive(input_path, template_path, output_path, basepath)
+        else:
+            generate_page(input_path, template_path, output_path, basepath)
