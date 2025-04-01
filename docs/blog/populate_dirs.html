@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>List of directories</title>
+    <link href="/py-static-web-generator/index.css" rel="stylesheet" />
+  </head>
+
+  <body>
+    <article><div><p>#!/bin/bash</p><h1>List of directories
+dirs=("glorfindel" "majesty" "tom")</h1><h1>Iterate over each directory
+for dir in "${dirs[@]}"; do
+# Check if the directory exists
+if [ -d "$dir" ]; then
+# Create index.md in the directory
+touch "$dir/index.md"
+echo "index.md created in $dir"
+else
+echo "Directory $dir does not exist!"
+fi
+done</h1></div></article>
+  </body>
+</html>

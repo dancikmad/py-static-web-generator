@@ -1,93 +1,63 @@
 import os
 import shutil
-import logging
-import re
-
-# configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+from pathlib import Path
+from src.markdown_blocks import markdown_to_html_node
 
 
-def copy_static(source_dir: str, dest_dir: str):
-    """
-    Recursively copy files from source_dir to dest_dir.
-    If dest_dir exists, it will be deleted first.
-    """
-    # Delete destination directory if it exists
-    if os.path.exists(dest_dir):
-        logger.info(f"Removing existing directory: {dest_dir}")
-        shutil.rmtree(dest_dir)
-    # Create destination directory
-    logger.info(f"Creating directory: {dest_dir}")
-    os.makedirs(dest_dir)
-    # Copy files and subdirectories recursively
-    copy_files_recursive(source_dir, dest_dir)
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
+    for filename in os.listdir(dir_path_content):
+        from_path = os.path.join(dir_path_content, filename)
+        dest_path = os.path.join(dest_dir_path, filename)
+        if os.path.isfile(from_path):
+            dest_path = Path(dest_path).with_suffix(".html")
+            generate_page(from_path, template_path, dest_path, basepath)
+        else:
+            generate_pages_recursive(from_path, template_path, dest_path, basepath)
 
 
-def copy_files_recursive(source_dir: str, dest_dir: str):
-    """
-    Helper function that recursively copies files from source_dir to dest_dir
-    """
-    # Get all items in the source directory
-    items = os.listdir(source_dir)
-    for item in items:
-        source_path = os.path.join(source_dir, item)
-        dest_path = os.path.join(dest_dir, item)
-        # If item is a file, copy it
-        if os.path.isfile(source_path):
-            logger.info(f"Copying file: {source_path} -> {dest_path}")
-            shutil.copy(source_path, dest_path)
-        # If item is a directory, create it and copy its contents recursively
-        elif os.path.isdir(source_path):
-            logger.info(f"Creating directory: {dest_path}")
-            os.makedirs(dest_path, exist_ok=True)
-            copy_files_recursive(source_path, dest_path)
+def generate_page(from_path, template_path, dest_path, basepath):
+    print(f" * {from_path} {template_path} -> {dest_path}")
+    from_file = open(from_path, "r")
+    markdown_content = from_file.read()
+    from_file.close()
+
+    template_file = open(template_path, "r")
+    template = template_file.read()
+    template_file.close()
+
+    node = markdown_to_html_node(markdown_content)
+    html = node.to_html()
+
+    title = extract_title(markdown_content)
+    template = template.replace("{{ Title }}", title)
+    template = template.replace("{{ Content }}", html)
+    template = template.replace('href="/', 'href="' + basepath)
+    template = template.replace('src="/', 'src="' + basepath)
+
+    dest_dir_path = os.path.dirname(dest_path)
+    if dest_dir_path != "":
+        os.makedirs(dest_dir_path, exist_ok=True)
+    to_file = open(dest_path, "w")
+    to_file.write(template)
 
 
-def generate_page(
-    content_path: str, template_path: str, output_path: str, basepath: str
-):
-    # Ensure basepath ends with "/"
-    if not basepath.endswith("/"):
-        basepath += "/"
-    with open(template_path, "r", encoding="utf-8") as template_file:
-        template = template_file.read()
-    with open(content_path, "r", encoding="utf-8") as content_file:
-        content = content_file.read()
-    # Replace placeholders
-    page_content = template.replace(
-        "{{ Title }}", os.path.basename(content_path).replace(".md", "")
-    )
-    page_content = page_content.replace("{{ Content }}", content)
-    # Replace href/src paths correctly
-    page_content = re.sub(r'href="/', f'href="{basepath}', page_content)
-    page_content = re.sub(r'src="/', f'src="{basepath}', page_content)
-    # Write the final output
-    with open(output_path, "w", encoding="utf-8") as output_file:
-        output_file.write(page_content)
+def extract_title(md):
+    lines = md.split("\n")
+    for line in lines:
+        if line.startswith("# "):
+            return line[2:]
+    raise ValueError("no title found")
 
 
-def generate_pages_recursive(
-    content_dir: str, template_path: str, output_dir: str, basepath: str
-):
-    # Ensure output directory exists
-    os.makedirs(output_dir, exist_ok=True)
-    for filename in os.listdir(content_dir):
-        input_path = os.path.join(content_dir, filename)
-        # Determine the output path
-        if os.path.isdir(input_path):
-            # For directories, create a corresponding directory in output
-            output_subdir = os.path.join(output_dir, filename)
-            os.makedirs(output_subdir, exist_ok=True)
-            generate_pages_recursive(input_path, template_path, output_subdir, basepath)
-        elif filename.endswith(".md"):
-            # Check if this is index.md, which should become index.html
-            if filename == "index.md":
-                output_path = os.path.join(output_dir, "index.html")
-            else:
-                # Regular markdown files become HTML files
-                output_path = os.path.join(output_dir, filename.replace(".md", ".html"))
-            generate_page(input_path, template_path, output_path, basepath)
+def copy_files_recursive(source_dir_path, dest_dir_path):
+    if not os.path.exists(dest_dir_path):
+        os.mkdir(dest_dir_path)
+
+    for filename in os.listdir(source_dir_path):
+        from_path = os.path.join(source_dir_path, filename)
+        dest_path = os.path.join(dest_dir_path, filename)
+        print(f" * {from_path} -> {dest_path}")
+        if os.path.isfile(from_path):
+            shutil.copy(from_path, dest_path)
+        else:
+            copy_files_recursive(from_path, dest_path)

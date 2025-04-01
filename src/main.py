@@ -1,27 +1,31 @@
+import os
+import shutil
 import sys
-from src.script import copy_static, logger, generate_pages_recursive
 
-# Get basepath from command line arguments, default to "/"
-basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
+from src.script import copy_files_recursive, generate_pages_recursive
 
-# Update output directory to docs instead of public
+
 dir_path_static = "./static"
-dir_path_output = "./docs"
-content_dir = "./content"
+dir_path_public = "./docs"
+dir_path_content = "./content"
 template_path = "./template.html"
+default_basepath = "/"
 
 
 def main():
-    # Copy static files to docs directory
-    logger.info("Starting static file copy process")
-    copy_static(dir_path_static, dir_path_output)
-    logger.info("Static file copy completed")
+    basepath = default_basepath
+    if len(sys.argv) > 1:
+        basepath = sys.argv[1]
 
-    # Generate all pages recursively from markdown files
-    logger.info("Starting recursive page generation...")
-    generate_pages_recursive(content_dir, template_path, dir_path_output, basepath)
-    logger.info("Recursive page generation completed.")
+    print("Deleting public directory...")
+    if os.path.exists(dir_path_public):
+        shutil.rmtree(dir_path_public)
+
+    print("Copying static files to public directory...")
+    copy_files_recursive(dir_path_static, dir_path_public)
+
+    print("Generating content...")
+    generate_pages_recursive(dir_path_content, template_path, dir_path_public, basepath)
 
 
-if __name__ == "__main__":
-    main()
+main()
